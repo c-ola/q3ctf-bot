@@ -28,17 +28,15 @@ client = commands.Bot(command_prefix='!', intents=intents)
 
 @client.event
 async def on_ready():
-    print(challenges)
-    # challenges["000-Test"] = Chal("000-Test", "flag-{th15-i5-4-7es7}", role_id="test")
-    # await client.load_extension("maincog")
+    # await client.load_extension("maincog"V
     # print(client.guilds)
-    # for guild in client.guilds:
-        # print(
-        #    f'{client.user} is connected to the following guild:\n'
-        #    f'{guild.name}(id: {guild.id})'
-        # )
-    print(client.guilds)
     await client.tree.sync(guild=discord.Object(id=864247133996843019))
+    for guild in client.guilds:
+        await client.tree.sync(guild=guild)
+        print(
+            f'{client.user} is connected to the following guild:\n'
+            f'{guild.name}(id: {guild.id})'
+        )
     await client.tree.sync()
 
 
@@ -85,6 +83,15 @@ async def chal(ctx: discord.Interaction, chal_id: str):
         await ctx.response.send_message(response)
     else:
         await ctx.response.send_message("Invalid Challenge " + chal_id, ephemeral=True)
+        return
+
+@client.tree.command(name="add",
+                     description="Adds a challenge",
+                     guild=discord.Object(id=864247133996843019)
+                     )
+async def add(ctx: discord.Interaction, chal_id: str):
+    await ctx.response.send_message("Not implemented yet", ephemeral=True)
+    if chal in challenges:
         return
 
 
