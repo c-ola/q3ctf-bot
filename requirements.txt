@@ -1,0 +1,3 @@
+json
+pyyaml
+discord.py
