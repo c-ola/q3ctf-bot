@@ -50,6 +50,4 @@ class Chal:
         self.role_id = role_id
 
     def verify(self, flag_guess):
-        if self.flag == flag_guess:
-            return True
-        return False
+        return self.flag == flag_guess
