@@ -111,7 +111,7 @@ async def get(ctx: discord.Interaction, chal_id: str):
                      guild=discord.Object(id=TEST_GUILD_ID)
                      )
 async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
-                     message: Optional[str], role: Optional[str],
+                     message: Optional[str], role_id: Optional[str],
                      points: Optional[str]):
     role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
     if role not in ctx.user.roles:
@@ -122,28 +122,27 @@ async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
         await ctx.response.send_message("Challenge with same Id already exists", ephemeral=True)
         return
 
-    chal = Chal(chal_id, flag)
-
-    chaldir = "./challenges/"
     chal_id.replace('./', '')
     chal_id.replace('../', '')
     chal_data = {}
     chal_data["name"] = chal_id
     chal_data["flag"] = flag
     chal_data["message"] = message
-    chal_data["role"] = role
+    chal_data["role"] = role_id
     chal_data["points"] = points
 
+    chal = Chal(chal_id, flag)
+    chal.role_id = role_id
+    chal.description = message
+    chal.files = []
+    challenges[chal_id] = chal
+    print("created challenges data")
+
+    chaldir = "./challenges/"
+    print(chal_data)
     f = open(chaldir + chal_id + ".yaml", 'w')
     yaml.dump(chal_data, f, default_flow_style=False)
     f.close()
-
-    chal = Chal(chal_id, flag)
-    chal.role_id = role
-    chal.description = message
-    chal.files = []
-    challenges.append(chal_id + ".yaml")
-
     await ctx.response.send_message("Successfully Created Challenge: {}".format(chal_id), ephemeral=True)
 
 
