@@ -73,26 +73,33 @@ async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
                      )
 async def chal(ctx: discord.Interaction, chal_id: str):
     chal = None
-    if chal_id in challenges:
-        chal = challenges[chal_id]
-        response = "# " + chal.chal_id + "\n"
-        if chal.description is not None:
-            response += "**Message:** " + chal.description + "\n"
-        if chal.role_id is not None:
-            response += "**Role Gained for Completing:** " + chal.role_id + "\n"
-        await ctx.response.send_message(response)
-    else:
+    if chal_id not in challenges:
         await ctx.response.send_message("Invalid Challenge " + chal_id, ephemeral=True)
         return
 
-@client.tree.command(name="add",
-                     description="Adds a challenge",
+    chal = challenges[chal_id]
+    response = "# " + chal.chal_id + "\n"
+    if chal.description is not None:
+        response += "**Message:** " + chal.description + "\n"
+    if chal.role_id is not None:
+        response += "**Role Gained for Completing:** " + chal.role_id + "\n"
+    await ctx.response.send_message(response)
+
+
+@client.tree.command(name="get",
+                     description="Sends the files for the challenge",
                      guild=discord.Object(id=864247133996843019)
                      )
-async def add(ctx: discord.Interaction, chal_id: str):
-    await ctx.response.send_message("Not implemented yet", ephemeral=True)
-    if chal in challenges:
+async def get(ctx: discord.Interaction, chal_id: str):
+    if chal_id not in challenges:
+        await ctx.response.send_message("Challenge not found", ephemeral=True)
         return
+
+    chal = challenges[chal_id]
+    for filename in chal.files:
+        filename.replace('./', '')
+        filename.replace('../', '')
+        await ctx.response.send_message(file=discord.File("./challenges/" + chal_id + "/" + filename))
 
 
 client.run(TOKEN)
