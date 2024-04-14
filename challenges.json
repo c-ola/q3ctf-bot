@@ -1,0 +1,14 @@
+{
+    "challenges": [
+        {
+            "chal_id": "000-Test",
+            "flag": "flag-{th15-i5-4-7es7}",
+            "role_id": "test"
+        },
+        {
+            "chal_id": "000-Test2",
+            "flag": "flag-{4an0th3r-0n3}",
+            "description": "Another flag"
+        }
+    ]
+}
