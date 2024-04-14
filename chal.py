@@ -25,30 +25,35 @@ def load_challenges(path="challenges.json"):
     chal_path = "./challenges"
     chals = {}
     for filename in os.listdir(chal_path):
-        if not filename.endswith(".yaml"):
-            continue
-        f = open(os.path.join(chal_path, filename), 'r')
-        chal_data = yaml.safe_load(f)
-        f.close()
-        print(chal_data)
-        chal_id = chal_data["name"]
-        flag = chal_data["flag"]
-        chal = Chal(chal_id, flag)
-        if "role" in chal_data:
-            chal.role_id = chal_data["role"]
-        if "attributes" in chal_data:
-            if "role" in chal_data["attributes"]:
-                chal.role_id = chal_data["attributes"]["role"]
-        if "message" in chal_data:
-            chal.description = chal_data["message"]
-        if "files" in chal_data:
-            if chal_data["files"] is not None:
-                for chal_file in chal_data["files"]:
-                    chal.files.append(chal_file)
-        chals[chal_id] = chal
-
+        chal = load_chal(filename)
+        if chal is not None:
+            chals[chal.chal_id] = chal
     return chals
 
+
+def load_chal(filename, chal_path="./challenges/"):
+    if not filename.endswith(".yaml"):
+        return None
+    f = open(os.path.join(chal_path, filename), 'r')
+    chal_data = yaml.safe_load(f)
+    f.close()
+
+    print(chal_data)
+    chal_id = chal_data["name"]
+    flag = chal_data["flag"]
+    chal = Chal(chal_id, flag)
+    if "role" in chal_data:
+        chal.role_id = chal_data["role"]
+    if "attributes" in chal_data:
+        if "role" in chal_data["attributes"]:
+            chal.role_id = chal_data["attributes"]["role"]
+    if "message" in chal_data:
+        chal.description = chal_data["message"]
+    if "files" in chal_data:
+        if chal_data["files"] is not None:
+            for chal_file in chal_data["files"]:
+                chal.files.append(chal_file)
+    return chal
 
 class Chal:
     def __init__(self, chal_id, flag, description=None, role_id=None, files=[]):

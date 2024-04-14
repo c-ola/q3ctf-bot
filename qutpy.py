@@ -1,19 +1,21 @@
 import os
 from dotenv import load_dotenv
+import yaml
 
 import discord
 import discord.ext
 from discord.ext import commands
 from discord import app_commands
 
-from chal import Chal, load_challenges
+from chal import Chal, load_challenges, load_chal
 
+from typing import Optional
 
 challenges = load_challenges()
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-
+TEST_GUILD_ID = os.getenv('TEST_GUILD_ID')
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
@@ -30,7 +32,7 @@ client = commands.Bot(command_prefix='!', intents=intents)
 async def on_ready():
     # await client.load_extension("maincog"V
     # print(client.guilds)
-    await client.tree.sync(guild=discord.Object(id=864247133996843019))
+    await client.tree.sync(guild=discord.Object(id=TEST_GUILD_ID))
     for guild in client.guilds:
         await client.tree.sync(guild=guild)
         print(
@@ -42,7 +44,7 @@ async def on_ready():
 
 @client.tree.command(name="submit",
                      description="Submits a flag for the specified challenge",
-                     guild=discord.Object(id=864247133996843019)
+                     guild=discord.Object(id=TEST_GUILD_ID)
                      )
 async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
     chal = None
@@ -69,7 +71,7 @@ async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
 
 @client.tree.command(name="chal",
                      description="View the properties of a challenge",
-                     guild=discord.Object(id=864247133996843019)
+                     guild=discord.Object(id=TEST_GUILD_ID)
                      )
 async def chal(ctx: discord.Interaction, chal_id: str):
     chal = None
@@ -88,7 +90,7 @@ async def chal(ctx: discord.Interaction, chal_id: str):
 
 @client.tree.command(name="get",
                      description="Sends the files for the challenge",
-                     guild=discord.Object(id=864247133996843019)
+                     guild=discord.Object(id=TEST_GUILD_ID)
                      )
 async def get(ctx: discord.Interaction, chal_id: str):
     if chal_id not in challenges:
@@ -96,10 +98,76 @@ async def get(ctx: discord.Interaction, chal_id: str):
         return
 
     chal = challenges[chal_id]
+    files = []
     for filename in chal.files:
         filename.replace('./', '')
         filename.replace('../', '')
-        await ctx.response.send_message(file=discord.File("./challenges/" + chal_id + "/" + filename))
+        files.append(discord.File("./challenges/" + chal_id + "/" + filename))
+    await ctx.response.send_message(files=files)
 
+
+@client.tree.command(name="create",
+                     description="Creates a new challenge",
+                     guild=discord.Object(id=TEST_GUILD_ID)
+                     )
+async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
+                     message: Optional[str], role: Optional[str],
+                     points: Optional[str]):
+    role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
+    if role not in ctx.user.roles:
+        await ctx.response.send_message("User cannot use this command: incorrect permissions")
+        return
+
+    if chal_id in challenges:
+        await ctx.response.send_message("Challenge with same Id already exists", ephemeral=True)
+        return
+
+    chal = Chal(chal_id, flag)
+
+    chaldir = "./challenges/"
+    chal_id.replace('./', '')
+    chal_id.replace('../', '')
+    chal_data = {}
+    chal_data["name"] = chal_id
+    chal_data["flag"] = flag
+    chal_data["message"] = message
+    chal_data["role"] = role
+    chal_data["points"] = points
+
+    f = open(chaldir + chal_id + ".yaml", 'w')
+    yaml.dump(chal_data, f, default_flow_style=False)
+    f.close()
+
+    chal = Chal(chal_id, flag)
+    chal.role_id = role
+    chal.description = message
+    chal.files = []
+    challenges.append(chal_id + ".yaml")
+
+    await ctx.response.send_message("Successfully Created Challenge: {}".format(chal_id), ephemeral=True)
+
+
+@client.tree.command(name="addfile",
+                     description="Add a file to a challenges list of files",
+                     guild=discord.Object(id=TEST_GUILD_ID)
+                     )
+async def addfile(ctx: discord.Interaction, chal_id: str, file: str):
+    if chal_id not in challenges:
+        await ctx.response.send_message("Invalid challenge Id: does not exist", ephemeral=True)
+        return
+
+    # f = open("./challenges/" + chal_id + ".yaml")
+    # chal_data = yaml.safe_load(f)
+    # f.close()
+    chal = challenges[chal_id]
+    chal.files.append(file)
+    # if "files" not in chal_data:
+    #    chal_data["files"] = [file]
+    # else:
+    #    chal_data["files"].append(file)
+    challenges[chal_id] = chal
+    # challenges[chal_id] = load_chal(chal_id + ".yaml")
+
+    await ctx.response.send_message("Successfully Added file to chal: {}".format(chal_id), ephemeral=True)
 
 client.run(TOKEN)
