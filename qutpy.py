@@ -25,7 +25,7 @@ intents.emojis = True
 intents.messages = True
 intents.members = True
 
-client = commands.Bot(command_prefix='!', intents=intents)
+client = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 
 @client.event
@@ -44,7 +44,7 @@ async def on_ready():
 
 @client.tree.command(name="submit",
                      description="Submits a flag for the specified challenge",
-                     guild=discord.Object(id=TEST_GUILD_ID)
+                     guild=discord.Object(id=TEST_GUILD_ID),
                      )
 async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
     chal = None
@@ -168,5 +168,18 @@ async def addfile(ctx: discord.Interaction, chal_id: str, file: str):
     # challenges[chal_id] = load_chal(chal_id + ".yaml")
 
     await ctx.response.send_message("Successfully Added file to chal: {}".format(chal_id), ephemeral=True)
+
+
+@client.command(name="help", description="Returns all commands available")
+async def help(ctx):
+    helptext = "```"
+    for command in client.commands:
+        helptext += f"{command}\n"
+    commands = client.tree.walk_commands()
+    print(commands)
+    for command in client.tree.walk_commands(guild=discord.Object(id=TEST_GUILD_ID)):
+        helptext += f"{command.name}\n"
+    helptext += "```"
+    await ctx.send(helptext)
 
 client.run(TOKEN)
