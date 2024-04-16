@@ -8,14 +8,42 @@ from discord.ext import commands
 from discord import app_commands
 
 from chal import Chal, load_challenges, load_chal
-
+from ctfcog import CTF
 from typing import Optional
-
-challenges = load_challenges()
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 TEST_GUILD_ID = os.getenv('TEST_GUILD_ID')
+OWNER_USER_ID = 216338352394207232
+
+
+class Qutpy(commands.Bot):
+    def __init__(self, *, command_prefix, intents: discord.Intents):
+        help_command = commands.DefaultHelpCommand(show_parameter_descriptions=True)
+
+        super().__init__(command_prefix=command_prefix,
+                         intents=intents, help_command=help_command)
+        self.challenges = load_challenges()
+
+    async def setup_hook(self):
+        await self.add_cog(CTF(self))
+        # This copies the global commands over to your guild.
+        self.tree.copy_global_to(guild=discord.Object(id=TEST_GUILD_ID))
+        await self.tree.sync(guild=discord.Object(id=TEST_GUILD_ID))
+
+    @commands.command(name="helpcustom", description="Returns all commands available")
+    async def helpcustom(self, ctx):
+        helptext = "```"
+        for command in client.commands:
+            helptext += f"{command}\n"
+        commands = client.tree.walk_commands()
+        print(commands)
+        for command in client.tree.walk_commands(guild=discord.Object(id=TEST_GUILD_ID)):
+            helptext += f"{command.name}\n"
+        helptext += "```"
+        await ctx.send(helptext)
+
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
@@ -24,22 +52,29 @@ intents.guild_reactions = True
 intents.emojis = True
 intents.messages = True
 intents.members = True
-
-client = commands.Bot(command_prefix='!', intents=intents, help_command=None)
+client = Qutpy(command_prefix='!', intents=intents)
 
 
 @client.event
 async def on_ready():
-    # await client.load_extension("maincog"V
-    # print(client.guilds)
-    await client.tree.sync(guild=discord.Object(id=TEST_GUILD_ID))
+    print(f'Logged in as {client.user} (ID: {client.user.id})')
+    print('------')
+
     for guild in client.guilds:
-        await client.tree.sync(guild=guild)
         print(
-            f'{client.user} is connected to the following guild:\n'
-            f'{guild.name}(id: {guild.id})'
-        )
-    await client.tree.sync()
+                f'{client.user} is connected to the following guild:\n'
+                f'{guild.name}(id: {guild.id})'
+                )
+
+
+@client.command(name='sync', description='Owner only')
+async def sync(interaction: discord.Interaction):
+    print("trying to sync")
+    if interaction.message.author.id == OWNER_USER_ID:
+        await client.tree.sync()
+        print('Command tree synced.')
+    else:
+        await interaction.response.send_message('You must be the owner to use this command!')
 
 
 @client.tree.command(name="submit",
@@ -48,8 +83,8 @@ async def on_ready():
                      )
 async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
     chal = None
-    if chal_id in challenges:
-        chal = challenges[chal_id]
+    if chal_id in client.challenges:
+        chal = client.challenges[chal_id]
     else:
         await ctx.response.send_message("Invalid Challenge " + chal_id, ephemeral=True)
         return
@@ -75,35 +110,17 @@ async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
                      )
 async def chal(ctx: discord.Interaction, chal_id: str):
     chal = None
-    if chal_id not in challenges:
+    if chal_id not in client.challenges:
         await ctx.response.send_message("Invalid Challenge " + chal_id, ephemeral=True)
         return
 
-    chal = challenges[chal_id]
+    chal = client.challenges[chal_id]
     response = "# " + chal.chal_id + "\n"
     if chal.description is not None:
         response += "**Message:** " + chal.description + "\n"
     if chal.role_id is not None:
         response += "**Role Gained for Completing:** " + chal.role_id + "\n"
     await ctx.response.send_message(response)
-
-
-@client.tree.command(name="get",
-                     description="Sends the files for the challenge",
-                     guild=discord.Object(id=TEST_GUILD_ID)
-                     )
-async def get(ctx: discord.Interaction, chal_id: str):
-    if chal_id not in challenges:
-        await ctx.response.send_message("Challenge not found", ephemeral=True)
-        return
-
-    chal = challenges[chal_id]
-    files = []
-    for filename in chal.files:
-        filename.replace('./', '')
-        filename.replace('../', '')
-        files.append(discord.File("./challenges/" + chal_id + "/" + filename))
-    await ctx.response.send_message(files=files)
 
 
 @client.tree.command(name="create",
@@ -118,7 +135,7 @@ async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
         await ctx.response.send_message("User cannot use this command: incorrect permissions")
         return
 
-    if chal_id in challenges:
+    if chal_id in client.challenges:
         await ctx.response.send_message("Challenge with same Id already exists", ephemeral=True)
         return
 
@@ -135,7 +152,7 @@ async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
     chal.role_id = role_id
     chal.description = message
     chal.files = []
-    challenges[chal_id] = chal
+    client.challenges[chal_id] = chal
     print("created challenges data")
 
     chaldir = "./challenges/"
@@ -151,35 +168,23 @@ async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
                      guild=discord.Object(id=TEST_GUILD_ID)
                      )
 async def addfile(ctx: discord.Interaction, chal_id: str, file: str):
-    if chal_id not in challenges:
+    if chal_id not in client.challenges:
         await ctx.response.send_message("Invalid challenge Id: does not exist", ephemeral=True)
         return
 
     # f = open("./challenges/" + chal_id + ".yaml")
     # chal_data = yaml.safe_load(f)
     # f.close()
-    chal = challenges[chal_id]
+    chal = client.challenges[chal_id]
     chal.files.append(file)
     # if "files" not in chal_data:
     #    chal_data["files"] = [file]
     # else:
     #    chal_data["files"].append(file)
-    challenges[chal_id] = chal
+    client.challenges[chal_id] = chal
     # challenges[chal_id] = load_chal(chal_id + ".yaml")
 
     await ctx.response.send_message("Successfully Added file to chal: {}".format(chal_id), ephemeral=True)
 
-
-@client.command(name="help", description="Returns all commands available")
-async def help(ctx):
-    helptext = "```"
-    for command in client.commands:
-        helptext += f"{command}\n"
-    commands = client.tree.walk_commands()
-    print(commands)
-    for command in client.tree.walk_commands(guild=discord.Object(id=TEST_GUILD_ID)):
-        helptext += f"{command.name}\n"
-    helptext += "```"
-    await ctx.send(helptext)
 
 client.run(TOKEN)

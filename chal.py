@@ -55,13 +55,17 @@ def load_chal(filename, chal_path="./challenges/"):
                 chal.files.append(chal_file)
     return chal
 
+
 class Chal:
-    def __init__(self, chal_id, flag, description=None, role_id=None, files=[]):
+    def __init__(self, chal_id, flag,
+                 description=None, role_id=None,
+                 files=[], points=0):
         self.chal_id = chal_id
         self.flag = flag
         self.description = description
         self.role_id = role_id
         self.files = files
+        self.points = points
 
     def verify(self, flag_guess):
         return self.flag == flag_guess
