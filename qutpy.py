@@ -1,4 +1,5 @@
 import os
+import sys
 from dotenv import load_dotenv
 import yaml
 
@@ -13,8 +14,11 @@ from typing import Optional
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+TESTING_MODE = os.getenv('BOT_TEST_MODE')
+TEST_TOKEN = os.getenv('TESTBOT_TOKEN')
 TEST_GUILD_ID = os.getenv('TEST_GUILD_ID')
-OWNER_USER_ID = 216338352394207232
+GUILDTWO = os.getenv('GUILDTWO')
+OWNER_USER_ID = os.getenv('OWNER_USER_ID')
 
 
 class Qutpy(commands.Bot):
@@ -74,18 +78,30 @@ async def on_ready():
 
 
 @client.command(name='sync', description='Owner only')
-async def sync(interaction: discord.Interaction):
+async def sync(ctx: discord.Interaction):
     print("trying to sync")
-    if interaction.message.author.id == OWNER_USER_ID:
+    if ctx.message.author.id == int(OWNER_USER_ID):
         await client.tree.sync()
         print('Command tree synced.')
     else:
-        await interaction.response.send_message('You must be the owner to use this command!')
+        await ctx.message.channel.send('You must be the owner to use this command!')
+
+
+@client.command(name='synch', description='Owner only')
+async def synch(ctx: discord.Interaction):
+    guild = ctx.message.guild
+    print("trying to sync to guild: ", guild)
+    if ctx.message.author.id == int(OWNER_USER_ID):
+        client.tree.copy_global_to(guild=guild)
+        await client.tree.sync(guild=guild)
+        print('Command tree synced.')
+    else:
+        await ctx.message.channel.send('You must be the owner to use this command!')
+
 
 
 @client.tree.command(name="submit",
                      description="Submits a flag for the specified challenge",
-                     guild=discord.Object(id=TEST_GUILD_ID),
                      )
 async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
     chal = None
@@ -111,8 +127,7 @@ async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
 
 
 @client.tree.command(name="chal",
-                     description="View the properties of a challenge",
-                     guild=discord.Object(id=TEST_GUILD_ID)
+                     description="View the properties of a challenge"
                      )
 async def chal(ctx: discord.Interaction, chal_id: str):
     chal = None
@@ -131,7 +146,7 @@ async def chal(ctx: discord.Interaction, chal_id: str):
 
 @client.tree.command(name="create",
                      description="Creates a new challenge",
-                     guild=discord.Object(id=TEST_GUILD_ID)
+                     # guild=discord.Object(id=TEST_GUILD_ID)
                      )
 async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
                      message: Optional[str], role_id: Optional[str],
@@ -171,7 +186,6 @@ async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
 
 @client.tree.command(name="addfile",
                      description="Add a file to a challenges list of files",
-                     guild=discord.Object(id=TEST_GUILD_ID)
                      )
 async def addfile(ctx: discord.Interaction, chal_id: str, file: str):
     if chal_id not in client.challenges:
@@ -192,5 +206,7 @@ async def addfile(ctx: discord.Interaction, chal_id: str, file: str):
 
     await ctx.response.send_message("Successfully Added file to chal: {}".format(chal_id), ephemeral=True)
 
-
-client.run(TOKEN)
+if TESTING_MODE == "1":
+    client.run(TEST_TOKEN)
+else:
+    client.run(TOKEN)

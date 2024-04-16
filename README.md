@@ -3,6 +3,12 @@
 ```bash
 python3 qutpy.py
 ```
+or with docker
+```bash
+docker build -t qutpy .
+docker run -it --rm --name qutpyd qutpy
+```
+
 Make sure you've installed the required pip packages
 
 ## Available App Commands
