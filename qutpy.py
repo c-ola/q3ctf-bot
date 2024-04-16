@@ -25,6 +25,12 @@ class Qutpy(commands.Bot):
                          intents=intents, help_command=help_command)
         self.challenges = load_challenges()
 
+    async def verifyChal(self, ctx, chal_id: str):
+        if chal_id not in self.challenges:
+            await ctx.message.channel.send("Invalid Challenge " + chal_id)
+            return False
+        return True
+
     async def setup_hook(self):
         await self.add_cog(CTF(self))
         # This copies the global commands over to your guild.
