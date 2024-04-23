@@ -17,7 +17,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 TESTING_MODE = os.getenv('BOT_TEST_MODE')
 TEST_TOKEN = os.getenv('TESTBOT_TOKEN')
 TEST_GUILD_ID = os.getenv('TEST_GUILD_ID')
-GUILDTWO = os.getenv('GUILDTWO')
 OWNER_USER_ID = os.getenv('OWNER_USER_ID')
 
 
