@@ -18,7 +18,7 @@ python3 ./src/qutpy.py
 or with docker
 ```bash
 docker build -t qutpy .
-docker run -it --rm --name qutpyd qutpy
+docker run -it --rm -v ./challenges:/usr/src/app/challenges -v ./users:/usr/src/app/users --name qutpy-daemon qutpy
 ```
 
 ## Testing

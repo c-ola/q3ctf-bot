@@ -32,12 +32,14 @@ class CTF(commands.Cog):
 
         if chal.files is not None:
             response += "### Available Files:\n"
+            print(chal.files)
             for filename in chal.files:
-                path = "./challenges/" + name + "/" + filename
-                response += " - {}".format(filename)
-                if not os.path.exists(path):
-                    response += " *(file does not exist on server)*"
-                response += "\n"
+                if filename is not None:
+                    path = "./challenges/" + name + "/" + filename
+                    response += " - {}".format(filename)
+                    if not os.path.exists(path):
+                        response += " *(file does not exist on server)*"
+                    response += "\n"
 
         if chal.role_id is not None:
             response += "### Role Gained for Completing:\n " + chal.role_id + "\n"
@@ -128,12 +130,12 @@ class CTF(commands.Cog):
         userlist = []
         for user in self.client.user_map.values():
             userlist.append((user.get_points(self.client.challenges), user.name))
-        userlist.sort(key=lambda x: x[0])
+        userlist.sort(key=lambda x: x[0], reverse=True)
         count = 1
         # tbh this looks terrible but works ig
         # response += f"{"\#":<3}{"Name":>5}{"":<5}{"Points":<3}{"":>3}\n"
         for user in userlist:
-            response += "{0:3}. {1:15} {2:6}\n".format(count, user[1], user[0])
+            response += "{0:3}. {1:15} {2:>6}\n".format(count, user[1], user[0])
             count += 1
 
         await ctx.message.channel.send(response)
