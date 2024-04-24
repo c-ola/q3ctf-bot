@@ -95,7 +95,7 @@ class Chal:
         chal_data["role"] = self.role_id
         chal_data["files"] = self.files
         chal_data["points"] = self.points
-        chal_data["attribtues"] = self.attributes
+        chal_data["attributes"] = self.attributes
         return chal_data
 
     def save_chal(self, override=False):
