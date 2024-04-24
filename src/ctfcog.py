@@ -30,7 +30,11 @@ class CTF(commands.Cog):
 
         response += "### Available Files:\n"
         for filename in chal.files:
-            response += " - {}\n".format(filename)
+            path = "./challenges/" + name + "/" + filename
+            response += " - {}".format(filename)
+            if not os.path.exists(path):
+                response += " *(file does not exist on server)*"
+            response += "\n"
 
         if chal.role_id is not None:
             response += "### Role Gained for Completing:\n " + chal.role_id + "\n"

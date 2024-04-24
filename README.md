@@ -32,7 +32,13 @@ Submit a flag to a challenge
 ```
 /submit <chal_id> <flag> 
 ```
-View details of a challenge
 ```
-/chal <chal_id>
+/create 
 ```
+```
+/modify 
+```
+```
+/sync & /synch 
+```
+
