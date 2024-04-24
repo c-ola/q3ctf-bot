@@ -9,6 +9,7 @@ from discord.ext import commands
 from discord import app_commands
 
 from chal import Chal, load_challenges, load_chal
+from user import User, load_users, save_users
 from ctfcog import CTF
 from typing import Optional
 
@@ -27,6 +28,7 @@ class Qutpy(commands.Bot):
         super().__init__(command_prefix=command_prefix,
                          intents=intents, help_command=help_command)
         self.challenges = load_challenges()
+        self.user_map = load_users()
         # for chal in self.challenges.values():
         #    print("----------------------")
         #    chal.print()
@@ -102,7 +104,6 @@ async def synch(ctx: discord.Interaction):
         await ctx.message.channel.send('You must be the owner to use this command!')
 
 
-
 @client.tree.command(name="submit",
                      description="Submits a flag for the specified challenge",
                      )
@@ -119,6 +120,16 @@ async def submit(ctx: discord.Interaction, name: str, flag_guess: str):
         response = "Congrats! You found the flag!"
         member = ctx.user
         print("User {} found the flag for {}".format(member, chal.name))
+
+        if ctx.user.id not in client.user_map:
+            user = User(ctx.user.id, ctx.user.name)
+            client.user_map[ctx.user.id] = user
+            print("Added user {} with id {}".format(ctx.user.name, ctx.user.id))
+
+        client.user_map[ctx.user.id].add_chal(chal)
+        print("User now has ", client.user_map[ctx.user.id].get_points(client.challenges), " points")
+        save_users(client.user_map)
+
         if chal.role_id is not None and member is not None and discord.utils.get(ctx.guild.roles, name=chal.role_id) is not None:
             print("Adding role {} to user {}".format(chal.role_id, member))
             role = discord.utils.get(ctx.guild.roles, name=chal.role_id)

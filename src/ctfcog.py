@@ -120,3 +120,20 @@ class CTF(commands.Cog):
         await ctx.message.channel.send(files=files)
 
     # add leaderboard command
+    @commands.command(name="leaderboard",
+                      description="Leaderboard of users sorted by points from challenges")
+    async def leaderboard(self, ctx: discord.Interaction):
+        response = ""
+        response += "### Leaderboard\n"
+        userlist = []
+        for user in self.client.user_map.values():
+            userlist.append((user.get_points(self.client.challenges), user.name))
+        userlist.sort(key=lambda x: x[0])
+        count = 1
+        # tbh this looks terrible but works ig
+        # response += f"{"\#":<3}{"Name":>5}{"":<5}{"Points":<3}{"":>3}\n"
+        for user in userlist:
+            response += "{0:3}. {1:15} {2:6}\n".format(count, user[1], user[0])
+            count += 1
+
+        await ctx.message.channel.send(response)
