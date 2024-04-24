@@ -3,24 +3,6 @@ import os
 import yaml
 
 
-def load_chals_json(path="challenges.json"):
-    f = open(path)
-    chals_unparsed = json.load(f)
-    f.close()
-    chals = {}
-    for chal_data in chals_unparsed["challenges"]:
-        chal_id = chal_data["chal_id"]
-        flag = chal_data["flag"]
-        chal = Chal(chal_id, flag)
-        if "role_id" in chal_data:
-            role_id = chal_data["role_id"]
-            chal.role_id = role_id
-        if "description" in chal_data:
-            description = chal_data["description"]
-            chal.role_id = description
-        chals[chal_id] = chal
-
-
 def load_challenges(path="challenges.json"):
     base_chal_path = "./challenges/"
     chals = {}
@@ -30,13 +12,14 @@ def load_challenges(path="challenges.json"):
         if os.path.isdir(chalpath):
             for chaldirfile in os.listdir(chalpath):
                 if chaldirfile.endswith(".yaml"):
+                    print("loading file: ", chaldirfile)
                     chal = load_chal(chaldirfile, base_chal_path=chalpath)
                     if chal is not None:
-                        chals[chal.chal_id] = chal
+                        chals[chal.name] = chal
         else:
             chal = load_chal(file)
             if chal is not None:
-                chals[chal.chal_id] = chal
+                chals[chal.name] = chal
     return chals
 
 
@@ -47,10 +30,9 @@ def load_chal(filename=None, base_chal_path="./challenges/"):
     chal_data = yaml.safe_load(f)
     f.close()
 
-    print(chal_data)
-    chal_id = chal_data["name"]
+    name = chal_data["name"]
     flag = chal_data["flag"]
-    chal = Chal(chal_id, flag)
+    chal = Chal(name, flag)
 
     if "message" in chal_data:
         chal.description = chal_data["message"]
@@ -61,10 +43,11 @@ def load_chal(filename=None, base_chal_path="./challenges/"):
     if "attributes" in chal_data:
         chal.attributes = chal_data["attributes"]
 
+    if "points" in chal_data:
+        chal.points = chal_data["points"]
+
     if "files" in chal_data:
-        if chal_data["files"] is not None:
-            for chal_file in chal_data["files"]:
-                chal.files.append(chal_file)
+        chal.files = chal_data["files"]
 
     return chal
 
@@ -84,10 +67,16 @@ class Chal:
     This can then be filtered with main filter and subfilter
     """
 
-    def __init__(self, chal_id, flag,
-                 description=None, role_id=None,
-                 files=[], points=0, attributes={}):
-        self.chal_id = chal_id
+    def __init__(self,
+                 name,
+                 flag,
+                 description=None,
+                 role_id=None,
+                 files=[],
+                 points=0,
+                 attributes={}
+                 ):
+        self.name = name
         self.flag = flag
         self.description = description
         self.role_id = role_id
@@ -97,3 +86,43 @@ class Chal:
 
     def verify(self, flag_guess):
         return self.flag == flag_guess
+
+    def get_data_as_dict(self):
+        chal_data = {}
+        chal_data["name"] = self.name
+        chal_data["flag"] = self.flag
+        chal_data["message"] = self.description
+        chal_data["role"] = self.role_id
+        chal_data["files"] = self.files
+        chal_data["points"] = self.points
+        chal_data["attribtues"] = self.attributes
+        return chal_data
+
+    def save_chal(self, override=False):
+        base_chal_path = "./challenges/"
+        chal_dir = base_chal_path + self.name
+        if not os.path.exists(chal_dir):
+            os.mkdir(chal_dir)
+        if os.path.exists(chal_dir + self.name) and os.path.isfile(chal_dir + self.name):
+            if override:
+                print("Challenge already exists, not overriding")
+                return False
+            else:
+                print("Overriding old challenge")
+        chal_data = self.get_data_as_dict()
+        f = open(chal_dir + "/" + self.name + ".yaml", 'w')
+        yaml.dump(chal_data, f, default_flow_style=False)
+        f.close()
+        return True
+
+    def print(self):
+        print(self.get_data_as_dict())
+        print(self.name)
+        print(self.flag)
+        print(self.description)
+        print(self.role_id)
+        print(self.files)
+        print(self.points)
+        print(self.attributes)
+
+

@@ -27,10 +27,14 @@ class Qutpy(commands.Bot):
         super().__init__(command_prefix=command_prefix,
                          intents=intents, help_command=help_command)
         self.challenges = load_challenges()
+        # for chal in self.challenges.values():
+        #    print("----------------------")
+        #    chal.print()
+        #    print("----------------------")
 
-    async def verifyChal(self, ctx, chal_id: str):
-        if chal_id not in self.challenges:
-            await ctx.message.channel.send("Invalid Challenge " + chal_id)
+    async def verifyChal(self, ctx, name: str):
+        if name not in self.challenges:
+            await ctx.message.channel.send("Invalid Challenge " + name)
             return False
         return True
 
@@ -102,19 +106,19 @@ async def synch(ctx: discord.Interaction):
 @client.tree.command(name="submit",
                      description="Submits a flag for the specified challenge",
                      )
-async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
+async def submit(ctx: discord.Interaction, name: str, flag_guess: str):
     chal = None
-    if chal_id in client.challenges:
-        chal = client.challenges[chal_id]
+    if name in client.challenges:
+        chal = client.challenges[name]
     else:
-        await ctx.response.send_message("Invalid Challenge " + chal_id, ephemeral=True)
+        await ctx.response.send_message("Invalid Challenge " + name, ephemeral=True)
         return
 
     response = ""
     if chal.verify(flag_guess):
         response = "Congrats! You found the flag!"
         member = ctx.user
-        print("User {} found the flag for {}".format(member, chal.chal_id))
+        print("User {} found the flag for {}".format(member, chal.name))
         if chal.role_id is not None and member is not None and discord.utils.get(ctx.guild.roles, name=chal.role_id) is not None:
             print("Adding role {} to user {}".format(chal.role_id, member))
             role = discord.utils.get(ctx.guild.roles, name=chal.role_id)
@@ -125,85 +129,108 @@ async def submit(ctx: discord.Interaction, chal_id: str, flag_guess: str):
     await ctx.response.send_message(response, ephemeral=True)
 
 
-@client.tree.command(name="chal",
-                     description="View the properties of a challenge"
-                     )
-async def chal(ctx: discord.Interaction, chal_id: str):
-    chal = None
-    if chal_id not in client.challenges:
-        await ctx.response.send_message("Invalid Challenge " + chal_id, ephemeral=True)
-        return
-
-    chal = client.challenges[chal_id]
-    response = "# " + chal.chal_id + "\n"
-    if chal.description is not None:
-        response += "**Message:** " + chal.description + "\n"
-    if chal.role_id is not None:
-        response += "**Role Gained for Completing:** " + chal.role_id + "\n"
-    await ctx.response.send_message(response)
-
-
+# This command lets you initially create a challenge with a command
+# Note: arguments have to be lower case
+# TODO: add attributes, this could be done in the modify command
 @client.tree.command(name="create",
-                     description="Creates a new challenge",
-                     # guild=discord.Object(id=TEST_GUILD_ID)
+                     description="Creates a new challenge"
                      )
-async def createchal(ctx: discord.Interaction, chal_id: str, flag: str,
-                     message: Optional[str], role_id: Optional[str],
-                     points: Optional[str]):
+async def createchal(ctx: discord.Interaction,
+                     name: str,
+                     flag: str,
+                     message: Optional[str],
+                     role_id: Optional[str],
+                     file: Optional[str],
+                     points: Optional[int],
+                     save_chal: Optional[bool]=False
+                     ):
+
+    # This should be changed to something else, maybe a env var
     role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
     if role not in ctx.user.roles:
         await ctx.response.send_message("User cannot use this command: incorrect permissions")
         return
 
-    if chal_id in client.challenges:
-        await ctx.response.send_message("Challenge with same Id already exists", ephemeral=True)
+    if name in client.challenges:
+        await ctx.response.send_message("challenge with same id already exists", ephemeral=true)
         return
 
-    chal_id.replace('./', '')
-    chal_id.replace('../', '')
-    chal_data = {}
-    chal_data["name"] = chal_id
-    chal_data["flag"] = flag
-    chal_data["message"] = message
-    chal_data["role"] = role_id
-    chal_data["points"] = points
-
-    chal = Chal(chal_id, flag)
-    chal.role_id = role_id
-    chal.description = message
-    chal.files = []
-    client.challenges[chal_id] = chal
-    print("created challenges data")
-
-    chaldir = "./challenges/"
-    print(chal_data)
-    f = open(chaldir + chal_id + ".yaml", 'w')
-    yaml.dump(chal_data, f, default_flow_style=False)
-    f.close()
-    await ctx.response.send_message("Successfully Created Challenge: {}".format(chal_id), ephemeral=True)
+    name.replace('./', '')
+    name.replace('../', '')
+    chal = Chal(name, flag, message, role_id, [file], points)
+    client.challenges[name] = chal
+    if save_chal:
+        if chal.save_chal():
+            print("saved challenge to challenge directory")
+        else:
+            print("Error creating the challenge")
+            await ctx.response.send_message("Could not create chal".format(name), ephemeral=True)
+            return
+    await ctx.response.send_message("Successfully Created Challenge: {}".format(name), ephemeral=True)
 
 
-@client.tree.command(name="addfile",
-                     description="Add a file to a challenges list of files",
+# TODO: ADD COMMAND TO JUST UPLOAD A YAML FILE
+@client.tree.command(name="modify",
+                     description=
+                     """
+                     Command used to modify properties of a challenge. 
+                     """
                      )
-async def addfile(ctx: discord.Interaction, chal_id: str, file: str):
-    if chal_id not in client.challenges:
+async def modifychal(ctx: discord.Interaction,
+                     name: str,
+                     new_name: Optional[str],
+                     flag: Optional[str],
+                     message: Optional[str],
+                     role_id: Optional[str],
+                     file: Optional[str],
+                     points: Optional[int],
+                     attribute_name: Optional[str],
+                     attribute_value: Optional[str],
+                     save_chal: Optional[bool]=False,
+                     append_file: Optional[bool]=False
+                     ):
+    role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
+    if role not in ctx.user.roles:
+        await ctx.response.send_message("User cannot use this command: incorrect permissions")
+        return
+
+    if name not in client.challenges:
         await ctx.response.send_message("Invalid challenge Id: does not exist", ephemeral=True)
         return
 
-    # f = open("./challenges/" + chal_id + ".yaml")
-    # chal_data = yaml.safe_load(f)
-    # f.close()
-    chal = client.challenges[chal_id]
-    chal.files.append(file)
-    # if "files" not in chal_data:
-    #    chal_data["files"] = [file]
-    # else:
-    #    chal_data["files"].append(file)
-    client.challenges[chal_id] = chal
-    # challenges[chal_id] = load_chal(chal_id + ".yaml")
+    chal = client.challenges[name]
 
-    await ctx.response.send_message("Successfully Added file to chal: {}".format(chal_id), ephemeral=True)
+    if new_name is not None:
+        new_name.replace('./', '')
+        new_name.replace('../', '')
+        chal.name = new_name
+        client.challenges[name] = None
+        client.challenges[new_name] = chal
+
+    if attribute_name is not None:
+        chal.attributes[attribute_name] = attribute_value
+    if flag is not None:
+        chal.flag = flag
+    if message is not None:
+        chal.description = message
+    if role_id is not None:
+        chal.role_id = role_id
+    if points is not None:
+        chal.points = points
+    if file is not None:
+        if append_files:
+            chal.files.append(file)
+        else:
+            chal.files = [file]
+    if save_chal:
+        if chal.save_chal():
+            print("successfully saved modified challenge")
+        else:
+            print("Error saving modified challenge")
+            await ctx.response.send_message("Could not save chal".format(name), ephemeral=True)
+            return
+    await ctx.response.send_message("Successfully modified Challenge: {}".format(name), ephemeral=True)
+
 
 if TESTING_MODE == "1":
     client.run(TEST_TOKEN)
