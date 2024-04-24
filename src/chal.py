@@ -87,6 +87,19 @@ class Chal:
     def verify(self, flag_guess):
         return self.flag == flag_guess
 
+    def prop_weight(self, property):
+        return 0
+    
+    def has_category(self, attribute_name):
+        return attribute_name in self.attributes
+
+    def has_property(self, property):
+        for attribute in self.attributes:
+            value = self.attributes[attribute]
+            if value == property:
+                return True
+        return False
+
     def get_data_as_dict(self):
         chal_data = {}
         chal_data["name"] = self.name
@@ -124,5 +137,4 @@ class Chal:
         print(self.files)
         print(self.points)
         print(self.attributes)
-
 

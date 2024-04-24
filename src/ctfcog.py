@@ -1,6 +1,8 @@
 import discord.ext
 from discord.ext import commands
 import os
+from typing import Optional
+import heapq
 
 class CTF(commands.Cog):
     def __init__(self, client):
@@ -28,13 +30,14 @@ class CTF(commands.Cog):
             response += "### Message: \n" + chal.description + "\n"
         response += "### Points:\n {}\n".format(chal.points)
 
-        response += "### Available Files:\n"
-        for filename in chal.files:
-            path = "./challenges/" + name + "/" + filename
-            response += " - {}".format(filename)
-            if not os.path.exists(path):
-                response += " *(file does not exist on server)*"
-            response += "\n"
+        if chal.files is not None:
+            response += "### Available Files:\n"
+            for filename in chal.files:
+                path = "./challenges/" + name + "/" + filename
+                response += " - {}".format(filename)
+                if not os.path.exists(path):
+                    response += " *(file does not exist on server)*"
+                response += "\n"
 
         if chal.role_id is not None:
             response += "### Role Gained for Completing:\n " + chal.role_id + "\n"
@@ -45,13 +48,56 @@ class CTF(commands.Cog):
             response += "**" + attribute + "**: " + chal.attributes[attribute] + "\n"
         await ctx.message.channel.send(response)
 
-    @commands.command(name="list", description="Lists specified challenges based on arguments?")
-    async def _list(self, ctx: discord.Interaction):
-        response = "### Available Challenges:\n"
-        response += "```\n"
-        for chal in self.client.challenges.values():
-            response += chal.name + "\n"
-        response += "\n```"
+
+    # Need to find a list of keywords that are processed differently in the filter list
+    # this could be things like "points=5", where it will filter by challenges that have more than 5 points
+    # current ideas:
+    # points
+    # gives_role
+
+    # also make the list weighted property > category > fuzzy find
+    @commands.command(name="list", description="Lists chals using filter strings (seperated by comma)")
+    async def _list(self, ctx: discord.Interaction, filter_string: Optional[str]):
+        filters = []
+        filtered_list = [] # should be a heap queue
+        heap_map = {}
+        if filter_string is not None:
+            filters = filter_string.split(",")
+            print(filters)
+            for chal in self.client.challenges.values():
+                chal_string = str(chal.get_data_as_dict())
+                for filter in filters:
+                    weight = -1
+                    add_chal = False
+                    if chal.has_property(filter):
+                        print(filter)
+                        weight = 0
+                        add_chal = True
+                    elif chal.has_category(filter):
+                        weight = 5
+                        add_chal = True
+                    elif filter in chal_string:
+                        weight = 100
+                        add_chal = True
+                    if add_chal:
+                        filtered_list.append((weight, chal))
+                        break
+        else:
+            for chal in self.client.challenges.values():
+                filtered_list.append((0, chal))
+
+        filtered_list.sort(key=lambda a: a[0])
+
+        print(filtered_list)
+        response = ""
+        if not filtered_list:
+            response += "No challenges found\n"
+        else:
+            response += "### Available Challenges:\n"
+            response += "```\n"
+            for weight, chal in filtered_list:
+                response += chal.name + "\n"
+            response += "\n```"
         await ctx.message.channel.send(response)
 
     @commands.command(name="get",
