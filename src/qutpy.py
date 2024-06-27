@@ -134,7 +134,7 @@ async def upload_challenge(ctx: discord.Interaction, chal_desc: discord.Attachme
 @client.tree.command(name="submit",
                      description="Submits a flag for the specified challenge",
                      )
-async def submit_works(ctx: discord.Interaction, name: str, flag_guess: str):
+async def submit(ctx: discord.Interaction, name: str, flag_guess: str):
     chal = None
     if name in client.challenges:
         chal = client.challenges[name]
@@ -167,47 +167,6 @@ async def submit_works(ctx: discord.Interaction, name: str, flag_guess: str):
     await ctx.response.send_message(response, ephemeral=True)
 
 
-# This command lets you initially create a challenge with a command
-# Note: arguments have to be lower case
-# TODO: add attributes, this could be done in the modify command
-@client.tree.command(name="create",
-                     description="Creates a new challenge"
-                     )
-async def createchal(ctx: discord.Interaction,
-                     name: str,
-                     flag: str,
-                     message: Optional[str],
-                     role_id: Optional[str],
-                     file: Optional[str],
-                     points: Optional[int],
-                     save_chal: Optional[bool]=False
-                     ):
-
-    # This should be changed to something else, maybe a env var
-    role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
-    if role not in ctx.user.roles:
-        await ctx.response.send_message("User cannot use this command: incorrect permissions")
-        return
-
-    if name in client.challenges:
-        await ctx.response.send_message("challenge with same id already exists", ephemeral=true)
-        return
-
-    name.replace('./', '')
-    name.replace('../', '')
-    chal = Chal(name, flag, message, role_id, [file], points)
-    client.challenges[name] = chal
-    if save_chal:
-        if chal.save_chal():
-            print("saved challenge to challenge directory")
-        else:
-            print("Error creating the challenge")
-            await ctx.response.send_message("Could not create chal".format(name), ephemeral=True)
-            return
-    await ctx.response.send_message("Successfully Created Challenge: {}".format(name), ephemeral=True)
-
-
-# TODO: ADD COMMAND TO JUST UPLOAD A YAML FILE
 @client.tree.command(name="modify",
                      description=
                      """
@@ -256,7 +215,7 @@ async def modifychal(ctx: discord.Interaction,
     if points is not None:
         chal.points = points
     if file is not None:
-        if append_files:
+        if append_file:
             chal.files.append(file)
         else:
             chal.files = [file]
@@ -265,7 +224,7 @@ async def modifychal(ctx: discord.Interaction,
             print("successfully saved modified challenge")
         else:
             print("Error saving modified challenge")
-            await ctx.response.send_message("Could not save chal".format(name), ephemeral=True)
+            await ctx.response.send_message("Could not save chal {}".format(name), ephemeral=True)
             return
     await ctx.response.send_message("Successfully modified Challenge: {}".format(name), ephemeral=True)
 
