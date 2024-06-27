@@ -17,6 +17,7 @@ def load_users():
         users[user["user_id"]] = User(user["user_id"], user["name"], user["completed"])
     return users
 
+
 def save_users(users):
     base_user_path = "./users/"
     users_file = "users.json"
@@ -24,10 +25,13 @@ def save_users(users):
     user_data = []
     for user in users:
         user_data.append(users[user].get_data())
-    if os.path.exists(path):
+
+    if os.path.exists(base_user_path):
         f = open(path, 'w', encoding='utf-8')
         json.dump(user_data, f, ensure_ascii=False, indent=4)
         f.close()
+    else:
+        print("Users path does not exist")
 
 
 class User:
