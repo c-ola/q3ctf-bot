@@ -104,10 +104,37 @@ async def synch(ctx: discord.Interaction):
         await ctx.message.channel.send('You must be the owner to use this command!')
 
 
+@client.tree.command(name="upload",
+                     description="Upload a challenge yaml file (example in github repo)",
+                    )
+async def upload_challenge(ctx: discord.Interaction, chal_desc: discord.Attachment, chal_files: Optional[discord.Attachment]):
+
+    role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
+    if role not in ctx.user.roles:
+        await ctx.response.send_message("User cannot use this command: incorrect permissions")
+        return
+
+    filename_stripped = chal_desc.filename.split('.', 1)[0]
+    path = os.path.join("./challenges/", filename_stripped)
+
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    await chal_desc.save(os.path.join(path, chal_desc.filename))
+    chal = load_chal(chal_desc.filename, base_chal_path=path)
+    client.challenges[chal.name] = chal
+
+    if chal_files is not None:
+        await chal_files.save(os.path.join(path, chal_files.filename))
+
+    await ctx.response.send_message("Successfully uploaded challenge", ephemeral=True)
+    return
+
+
 @client.tree.command(name="submit",
                      description="Submits a flag for the specified challenge",
                      )
-async def submit(ctx: discord.Interaction, name: str, flag_guess: str):
+async def submit_works(ctx: discord.Interaction, name: str, flag_guess: str):
     chal = None
     if name in client.challenges:
         chal = client.challenges[name]

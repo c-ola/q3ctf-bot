@@ -1,9 +1,8 @@
-import json
 import os
 import yaml
 
 
-def load_challenges(path="challenges.json"):
+def load_challenges():
     base_chal_path = "./challenges/"
     chals = {}
     for file in os.listdir(base_chal_path):

@@ -10,11 +10,11 @@ class CTF(commands.Cog):
 
     # This group contains commands for viewing challenges
     # Should add the filters/grouping of categories here
-    @commands.group(name="view", description="Lets you view things", invoke_without_command=True)
-    async def view(self, ctx):
-        pass
+    #@commands.group(name="view", description="Lets you view things", invoke_without_command=True)
+    #async def view(self, ctx):
+    #    pass
 
-    @view.command(name="challenge", description="View Challenge Properties")
+    @commands.command(name="view", description="View Challenge Properties")
     async def chalview(
             self,
             ctx: discord.Interaction,

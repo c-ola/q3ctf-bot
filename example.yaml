@@ -1,0 +1,10 @@
+name: example
+message: example yaml challenge description
+points: 0
+attributes:
+    category: example (used for sorting)
+    difficulty: easy
+files:
+    - example.yaml
+flag: flag{3x4mp1e_fl4g}
+role: null

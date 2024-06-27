@@ -42,3 +42,17 @@ Submit a flag to a challenge
 /sync & /synch 
 ```
 
+## Example Challenge File
+```yaml
+name: example
+message: example yaml challenge description
+points: 0
+attributes:
+    category: example (used for sorting)
+    difficulty: easy
+files:
+    - names of files to be provided (should just be one zip file)
+flag: flag{3x4mp1e_fl4g}
+role: null
+```
+
