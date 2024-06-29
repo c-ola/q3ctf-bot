@@ -17,6 +17,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 TESTING_MODE = os.getenv('BOT_TEST_MODE')
 TEST_TOKEN = os.getenv('TESTBOT_TOKEN')
+GUILD_ID = os.getenv('GUILD_ID')
 TEST_GUILD_ID = os.getenv('TEST_GUILD_ID')
 OWNER_USER_ID = os.getenv('OWNER_USER_ID')
 
@@ -43,20 +44,8 @@ class Qutpy(commands.Bot):
     async def setup_hook(self):
         await self.add_cog(CTF(self))
         # This copies the global commands over to your guild.
-        self.tree.copy_global_to(guild=discord.Object(id=TEST_GUILD_ID))
-        await self.tree.sync(guild=discord.Object(id=TEST_GUILD_ID))
-
-    @commands.command(name="helpcustom", description="Returns all commands available")
-    async def helpcustom(self, ctx):
-        helptext = "```"
-        for command in client.commands:
-            helptext += f"{command}\n"
-        commands = client.tree.walk_commands()
-        print(commands)
-        for command in client.tree.walk_commands(guild=discord.Object(id=TEST_GUILD_ID)):
-            helptext += f"{command.name}\n"
-        helptext += "```"
-        await ctx.send(helptext)
+        #self.tree.copy_global_to(guild=discord.Object(id=TEST_GUILD_ID))
+        #await self.tree.sync(guild=discord.Object(id=TEST_GUILD_ID))
 
 
 intents = discord.Intents.default()
@@ -104,13 +93,22 @@ async def synch(ctx: discord.Interaction):
         await ctx.message.channel.send('You must be the owner to use this command!')
 
 
-@client.tree.command(name="upload",
-                     description="Upload a challenge yaml file (example in github repo)",
-                    )
-async def upload_challenge(ctx: discord.Interaction, chal_desc: discord.Attachment, chal_files: Optional[discord.Attachment]):
-
+# Verifies that a user has the correct permissions
+def verify_user(ctx: discord.Interaction):
     role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
-    if role not in ctx.user.roles:
+    return role in ctx.user.roles and ctx.guild == GUILD_ID
+
+
+# Uploads a challenge and adds it to the bot
+@client.tree.command(name="upload",
+                     description="Upload a challenge yaml file (example in github repo)"
+                     )
+async def upload_challenge(
+        ctx: discord.Interaction,
+        chal_desc: discord.Attachment,
+        chal_files: Optional[discord.Attachment]
+        ):
+    if not verify_user(ctx):
         await ctx.response.send_message("User cannot use this command: incorrect permissions")
         return
 
@@ -183,11 +181,10 @@ async def modifychal(ctx: discord.Interaction,
                      points: Optional[int],
                      attribute_name: Optional[str],
                      attribute_value: Optional[str],
-                     save_chal: Optional[bool]=False,
-                     append_file: Optional[bool]=False
+                     save_chal: Optional[bool] = False,
+                     append_file: Optional[bool] = False
                      ):
-    role = discord.utils.get(ctx.guild.roles, name="CTF-EXEC")
-    if role not in ctx.user.roles:
+    if not verify_user(ctx):
         await ctx.response.send_message("User cannot use this command: incorrect permissions")
         return
 
@@ -197,13 +194,20 @@ async def modifychal(ctx: discord.Interaction,
 
     chal = client.challenges[name]
 
+    # changing names is a little scuffed when i think about it
+    # gonna be depricated for now
+    """
+    if new_name in client.challenges:
+        await ctx.response.send_message("Cannot set name to existing challenge", ephemeral=True)
+        return
+
     if new_name is not None:
         new_name.replace('./', '')
         new_name.replace('../', '')
         chal.name = new_name
         client.challenges[name] = None
         client.challenges[new_name] = chal
-
+    """
     if attribute_name is not None:
         chal.attributes[attribute_name] = attribute_value
     if flag is not None:
